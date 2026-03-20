@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multimodal RAG System - CLIP + FAISS + LLM</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="hero">
+    <div class="container">
+      <h1>Multimodal RAG System</h1>
+      <p class="subtitle">基于 CLIP + FAISS + LLM 的多模态检索增强生成系统</p>
+      <div class="hero-links">
+        <a href="https://github.com/your-username/multimodal-retrieval" class="btn btn-primary" target="_blank">GitHub Source</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Overview -->
+    <section class="section">
+      <h2>项目简介</h2>
+      <p>
+        端到端多模态 RAG 系统，支持<strong>文本搜图</strong>、<strong>以图搜图</strong>、<strong>RAG 问答</strong>三种检索模式。
+        使用 CLIP (ViT-B/32) 进行跨模态编码，FAISS 实现高效向量检索，结合 LLM 生成自然语言回答。
+        在 Flickr30K 数据集上，Text-to-Image R@1 达到 <strong>60.50%</strong>，对齐公开基线水平。
+      </p>
+    </section>
+
+    <!-- Architecture -->
+    <section class="section">
+      <h2>系统架构</h2>
+      <div class="arch-diagram">
+        <div class="arch-phase">
+          <h3>离线阶段 (Data Ingestion)</h3>
+          <div class="arch-flow">
+            <div class="arch-node">Flickr30K CSV</div>
+            <div class="arch-arrow">&rarr;</div>
+            <div class="arch-node">CLIP Encoder</div>
+            <div class="arch-arrow">&rarr;</div>
+            <div class="arch-group">
+              <div class="arch-node small">image.index<br><span>FAISS</span></div>
+              <div class="arch-node small">text.index<br><span>FAISS</span></div>
+              <div class="arch-node small">metadata.db<br><span>SQLite</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="arch-phase">
+          <h3>在线阶段 (Query Serving)</h3>
+          <div class="arch-flow">
+            <div class="arch-node">User Query</div>
+            <div class="arch-arrow">&rarr;</div>
+            <div class="arch-node">CLIP Encode</div>
+            <div class="arch-arrow">&rarr;</div>
+            <div class="arch-node">FAISS Search</div>
+            <div class="arch-arrow">&rarr;</div>
+            <div class="arch-node">SQLite Lookup</div>
+            <div class="arch-arrow">&rarr;</div>
+            <div class="arch-node highlight">LLM Generate</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tech Stack -->
+    <section class="section">
+      <h2>技术栈</h2>
+      <div class="tags">
+        <span class="tag tag-ml">CLIP (ViT-B/32)</span>
+        <span class="tag tag-ml">FAISS</span>
+        <span class="tag tag-ml">PyTorch</span>
+        <span class="tag tag-api">FastAPI</span>
+        <span class="tag tag-api">Gradio</span>
+        <span class="tag tag-db">SQLite</span>
+        <span class="tag tag-llm">OpenAI API</span>
+        <span class="tag tag-data">Flickr30K</span>
+        <span class="tag tag-tool">Python 3.10</span>
+        <span class="tag tag-tool">CUDA</span>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section class="section">
+      <h2>功能特性</h2>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <h3>文本搜图 (Text &rarr; Image)</h3>
+          <p>输入自然语言描述，检索语义最匹配的图片。CLIP 跨模态对齐实现零样本检索。</p>
+        </div>
+        <div class="feature-card">
+          <h3>以图搜图 (Image &rarr; Image)</h3>
+          <p>上传一张图片，找到视觉特征最相似的图片。基于 CLIP 视觉编码器的语义匹配。</p>
+        </div>
+        <div class="feature-card">
+          <h3>RAG 问答</h3>
+          <p>结合检索结果和 LLM，对图片知识库进行问答。检索提供证据，LLM 组织回答。</p>
+        </div>
+        <div class="feature-card">
+          <h3>评测对齐基线</h3>
+          <p>Flickr30K 标准评测：T&rarr;I R@1=60.50%, R@5=86.76%；I&rarr;T R@1=80.00%, R@5=95.70%</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Demo Screenshots -->
+    <section class="section">
+      <h2>Demo 展示</h2>
+      <p class="placeholder-note">（截图将在本地 Demo 运行后添加）</p>
+      <div class="screenshot-grid">
+        <!-- Placeholder for screenshots -->
+        <div class="screenshot-placeholder">
+          <p>文本搜图效果</p>
+        </div>
+        <div class="screenshot-placeholder">
+          <p>以图搜图效果</p>
+        </div>
+        <div class="screenshot-placeholder">
+          <p>RAG 问答效果</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Benchmark -->
+    <section class="section">
+      <h2>检索性能</h2>
+      <table class="benchmark-table">
+        <thead>
+          <tr>
+            <th>检索方向</th>
+            <th>R@1</th>
+            <th>R@5</th>
+            <th>R@10</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Text &rarr; Image</td>
+            <td>60.50%</td>
+            <td>86.76%</td>
+            <td>93.02%</td>
+          </tr>
+          <tr>
+            <td>Image &rarr; Text</td>
+            <td>80.00%</td>
+            <td>95.70%</td>
+            <td>98.80%</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="table-note">基于 Flickr30K 测试集 (1000 张图片)，CLIP ViT-B/32, IndexFlatIP</p>
+    </section>
+
+    <!-- Quick Start -->
+    <section class="section">
+      <h2>快速开始</h2>
+      <pre><code># 1. 克隆仓库
+git clone https://github.com/your-username/multimodal-retrieval.git
+cd multimodal-retrieval
+
+# 2. 安装依赖
+pip install -r requirements.txt
+
+# 3. 数据摄入 (需要本地 Flickr30K 数据集 + CLIP 模型)
+python -m scripts.ingest
+
+# 4. 启动 Gradio Demo
+python -m app.demo
+# 浏览器打开 http://localhost:7860
+
+# 或启动 FastAPI 服务
+uvicorn app.main:app --reload
+# API 文档: http://localhost:8000/docs</code></pre>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>Multimodal RAG System &copy; 2026</p>
+    </div>
+  </footer>
+</body>
+</html>
