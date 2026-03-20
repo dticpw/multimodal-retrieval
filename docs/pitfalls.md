@@ -104,3 +104,20 @@ os.environ["GRADIO_ANALYTICS_ENABLED"] = "False"
 import gradio as gr  # 必须在设置环境变量之后再 import
 ```
 **面试要点**: 第三方库的遥测/analytics 功能在公司内网或代理环境下经常出问题，这是部署时的常见坑。通常通过环境变量或配置项关闭。
+
+### 10. 端口被占用导致 Gradio 启动失败 (Errno 10048)
+
+**现象**: 启动 `python -m app.demo` 报错 `OSError: [Errno 10048] error while attempting to bind on address ('0.0.0.0', 7860): 通常每个套接字地址(协议/网络地址/端口)只允许使用一次`。
+**原因**: 上一次运行的 Gradio 进程没有正确退出（如直接关闭终端而非 Ctrl+C），残留进程仍占用 7860 端口。
+**排查与解决**:
+```powershell
+# 1. 查找占用端口的进程 PID
+netstat -ano | findstr 7860
+
+# 2. 杀掉对应进程
+taskkill /PID <PID号> /F
+
+# 3. 重新启动
+python -m app.demo
+```
+**面试要点**: 端口占用是服务开发的常见问题。生产环境中通常通过进程管理器（systemd、supervisor）确保服务正确启停；开发时养成 Ctrl+C 优雅退出的习惯，避免残留进程。
