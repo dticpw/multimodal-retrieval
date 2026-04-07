@@ -17,6 +17,9 @@ class FAISSIndexer:
         self._index_dir = Path(index_dir)
         self._image_index: faiss.Index | None = None
         self._text_index: faiss.Index | None = None
+        self._use_ivf = settings.use_ivf_index
+        self._nlist = settings.ivf_nlist
+        self._nprobe = settings.ivf_nprobe
 
     @property
     def image_index_size(self) -> int:
@@ -29,16 +32,42 @@ class FAISSIndexer:
     def build_image_index(self, embeddings: np.ndarray) -> None:
         """Build image index from L2-normalized embeddings. Shape: (N, dim)."""
         assert embeddings.ndim == 2 and embeddings.shape[1] == self._dim
-        self._image_index = faiss.IndexFlatIP(self._dim)
-        self._image_index.add(embeddings.astype(np.float32))
-        logger.info("Built image index with %d vectors", self._image_index.ntotal)
+        emb_f32 = embeddings.astype(np.float32)
+
+        if self._use_ivf and len(emb_f32) > 50000:
+            quantizer = faiss.IndexFlatIP(self._dim)
+            self._image_index = faiss.IndexIVFFlat(
+                quantizer, self._dim, self._nlist, faiss.METRIC_INNER_PRODUCT
+            )
+            self._image_index.train(emb_f32)
+            self._image_index.add(emb_f32)
+            self._image_index.nprobe = self._nprobe
+            logger.info("Built IVF image index: %d vectors, %d clusters, nprobe=%d",
+                       self._image_index.ntotal, self._nlist, self._nprobe)
+        else:
+            self._image_index = faiss.IndexFlatIP(self._dim)
+            self._image_index.add(emb_f32)
+            logger.info("Built flat image index: %d vectors", self._image_index.ntotal)
 
     def build_text_index(self, embeddings: np.ndarray) -> None:
         """Build text index from L2-normalized embeddings. Shape: (M, dim)."""
         assert embeddings.ndim == 2 and embeddings.shape[1] == self._dim
-        self._text_index = faiss.IndexFlatIP(self._dim)
-        self._text_index.add(embeddings.astype(np.float32))
-        logger.info("Built text index with %d vectors", self._text_index.ntotal)
+        emb_f32 = embeddings.astype(np.float32)
+
+        if self._use_ivf and len(emb_f32) > 50000:
+            quantizer = faiss.IndexFlatIP(self._dim)
+            self._text_index = faiss.IndexIVFFlat(
+                quantizer, self._dim, self._nlist, faiss.METRIC_INNER_PRODUCT
+            )
+            self._text_index.train(emb_f32)
+            self._text_index.add(emb_f32)
+            self._text_index.nprobe = self._nprobe
+            logger.info("Built IVF text index: %d vectors, %d clusters, nprobe=%d",
+                       self._text_index.ntotal, self._nlist, self._nprobe)
+        else:
+            self._text_index = faiss.IndexFlatIP(self._dim)
+            self._text_index.add(emb_f32)
+            logger.info("Built flat text index: %d vectors", self._text_index.ntotal)
 
     def search_images(self, query: np.ndarray, top_k: int = 10) -> tuple[np.ndarray, np.ndarray]:
         """Search image index. Returns (scores, indices) of shape (N, top_k)."""

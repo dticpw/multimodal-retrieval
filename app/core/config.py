@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     batch_size: int = 64
     device: str = "cuda"
 
+    # FAISS indexing
+    use_ivf_index: bool = False  # True for >50K vectors
+    ivf_nlist: int = 100  # Number of clusters (sqrt(N) recommended)
+    ivf_nprobe: int = 10  # Search probes (higher = more accurate but slower)
+
     # LLM
     llm_base_url: str = ""
     llm_api_key: str = ""

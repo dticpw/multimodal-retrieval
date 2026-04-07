@@ -18,6 +18,22 @@ SYSTEM_PROMPT = (
     "4. 使用中文回答"
 )
 
+QUERY_REWRITE_PROMPT = (
+    "你是一个查询理解助手。用户会用中文描述他们想找的图片，你需要将其改写为简洁的英文描述，用于图像检索。\n"
+    "要求：\n"
+    "1. 提取核心视觉元素（主体、动作、场景、颜色等）\n"
+    "2. 使用简单的英文短语，不要完整句子\n"
+    "3. 只输出英文描述，不要解释\n"
+    "4. 如果用户查询已经是英文，直接返回原文\n\n"
+    "示例：\n"
+    "用户：一只在草地上奔跑的狗\n"
+    "输出：dog running on grass\n\n"
+    "用户：穿红色衣服的小女孩\n"
+    "输出：little girl in red dress\n\n"
+    "用户：海边的日落\n"
+    "输出：sunset at beach"
+)
+
 
 def _format_sources(sources: list[RetrievalResult]) -> str:
     """Format retrieval results into context string for the LLM."""
@@ -66,3 +82,18 @@ class LLMGenerator:
             temperature=self._temperature,
         )
         return response.choices[0].message.content
+
+    def rewrite_query(self, query: str) -> str:
+        """Rewrite user query to English for better CLIP retrieval."""
+        response = self._client.chat.completions.create(
+            model=self._model,
+            messages=[
+                {"role": "system", "content": QUERY_REWRITE_PROMPT},
+                {"role": "user", "content": query},
+            ],
+            max_tokens=100,
+            temperature=0.3,
+        )
+        rewritten = response.choices[0].message.content.strip()
+        logger.info("Query rewrite: '%s' -> '%s'", query, rewritten)
+        return rewritten

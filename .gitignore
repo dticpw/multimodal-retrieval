@@ -1,34 +1,71 @@
-# Index files
-indexes/
-data/
-
 # Python
 __pycache__/
-*.pyc
-*.pyo
-*.egg-info/
-dist/
-build/
-.eggs/
-
-# Environment
-.env
-.venv/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
 venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Environment variables
+.env
+.env.local
 
 # IDE
 .vscode/
 .idea/
 *.swp
-
-# OS
-.DS_Store
-Thumbs.db
+*.swo
+*~
 
 # Claude Code
 .claude/
 
-# Misc
+# Project specific
+data/
+indexes/
 logs/
 *.zip
-*.png
+
+# Docs - personal files
+docs/*.pdf
+docs/*.png
+docs/*.jpg
+docs/*.aux
+docs/*.fdb_latexmk
+docs/*.fls
+docs/*.log
+docs/*.out
+docs/*.synctex.gz
+docs/*.tex
+docs/*.zip
+docs/Readme.md
+docs/*-detailed.md
+docs/*-diagram.md
+docs/compile-guide.md
+docs/demo-paper-reference.md
+docs/demo-paper.md
+docs/llm-config.md
+docs/scaling-guide.md
+docs/submission-checklist.md
+docs/材料位置.md
+
+# Test files
+test_*.py
+scripts/draw_architecture.py

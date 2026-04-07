@@ -73,11 +73,17 @@ def run_ingestion(csv_path: str, image_dir: str) -> None:
 
     logger.info("Valid images: %d / %d", len(valid_images), len(image_names))
 
-    # 3. Encode images
+    # 3. Encode images in batches
     encoder = CLIPEncoder()
-    logger.info("Encoding %d images...", len(valid_images))
     image_paths = [p for _, p in valid_images]
-    image_embeddings = encoder.encode_images(image_paths)
+    logger.info("Encoding %d images in batches of %d...", len(image_paths), settings.batch_size)
+
+    image_emb_list = []
+    for i in tqdm(range(0, len(image_paths), settings.batch_size), desc="Encoding images"):
+        batch = image_paths[i:i+settings.batch_size]
+        emb = encoder.encode_images(batch)
+        image_emb_list.append(emb)
+    image_embeddings = np.vstack(image_emb_list)
     logger.info("Image embeddings shape: %s", image_embeddings.shape)
 
     # 4. Encode captions and build caption mapping
@@ -91,12 +97,18 @@ def run_ingestion(csv_path: str, image_dir: str) -> None:
             all_caption_texts.append(caption)
             caption_idx += 1
 
-    logger.info("Encoding %d captions...", len(all_caption_texts))
-    text_embeddings = encoder.encode_texts(all_caption_texts)
+    logger.info("Encoding %d captions in batches of %d...", len(all_caption_texts), settings.batch_size)
+    text_emb_list = []
+    for i in tqdm(range(0, len(all_caption_texts), settings.batch_size), desc="Encoding captions"):
+        batch = all_caption_texts[i:i+settings.batch_size]
+        emb = encoder.encode_texts(batch)
+        text_emb_list.append(emb)
+    text_embeddings = np.vstack(text_emb_list)
     logger.info("Text embeddings shape: %s", text_embeddings.shape)
 
     # 5. Build FAISS indexes
     indexer = FAISSIndexer()
+    logger.info("Building indexes (IVF mode: %s)...", settings.use_ivf_index)
     indexer.build_image_index(image_embeddings)
     indexer.build_text_index(text_embeddings)
     indexer.save()

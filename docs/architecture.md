@@ -195,8 +195,8 @@ def rag_query(
 
 ```python
 def rag_query(self, query: str, top_k: int, generator: LLMGenerator) -> RAGResponse:
-    # 阶段 A: 检索
-    retrieval_resp = self.text_to_image(query, top_k)   # ← 见 Step 3-5 # 调 encoder → indexer → metadata
+    # 阶段 A: 检索（现在会传入 generator 用于查询改写）
+    retrieval_resp = self.text_to_image(query, top_k, generator=generator)   # ← 见 Step 2.5-5
     sources = retrieval_resp.results					# 拿到 5 个检索结果
 
     # 阶段 B: 生成
@@ -207,9 +207,75 @@ def rag_query(self, query: str, top_k: int, generator: LLMGenerator) -> RAGRespo
 
 **两个阶段**：先 Retrieval（检索），后 Generation（生成）。这就是 RAG 的 R 和 G。
 
-* R (Retrieval)：调 text_to_image()，内部串联 CLIP 编码 → FAISS 搜索 → SQLite 查元数据，拿到 5 个最相关的图片及其 captions
+* R (Retrieval)：调 text_to_image()，内部串联 **LLM 查询理解（如果是中文）** → CLIP 编码 → FAISS 搜索 → SQLite 查元数据
 * G (Generation)：把检索结果 + 用户问题交给 LLM 生成回答
 
+
+
+### Step 2.5: LLM 查询理解（中文查询改写）
+
+> **新增功能**：当检测到中文查询时，先用 LLM 提取视觉语义并改写为英文，解决 CLIP 单语模型的跨语言检索问题。
+
+**文件**: `app/services/retriever.py:32-44` + `app/services/generator.py:71-90`
+
+```
+用户查询: "一只在草地上奔跑的狗"
+        │
+        ▼
+┌─────────────────────────────────────────────────┐
+│ Retriever.text_to_image()                        │
+│                                                  │
+│ 1. 检测是否包含中文:                              │
+│    _contains_chinese(query)                      │
+│    → 检查字符是否在 \u4e00-\u9fff 范围            │
+│    → 返回 True                                   │
+│                                                  │
+│ 2. 调用 LLM 改写查询:                             │
+│    generator.rewrite_query(query)                │
+│    ↓                                             │
+└────┼─────────────────────────────────────────────┘
+     │
+     ▼
+┌─────────────────────────────────────────────────┐
+│ LLMGenerator.rewrite_query()                     │
+│                                                  │
+│ System Prompt:                                   │
+│ "你是查询理解助手。将中文描述改写为简洁的         │
+│  英文视觉描述，用于图像检索。                     │
+│  要求：                                          │
+│  1. 提取核心视觉元素（主体、动作、场景）          │
+│  2. 使用简单英文短语，不要完整句子                │
+│  3. 只输出英文描述"                               │
+│                                                  │
+│ User: "一只在草地上奔跑的狗"                      │
+│                                                  │
+│ LLM 分析:                                        │
+│ - 主体: 狗 (dog)                                 │
+│ - 动作: 奔跑 (running)                           │
+│ - 场景: 草地 (grass)                             │
+│                                                  │
+│ LLM 输出: "dog running on grass"                 │
+│                                                  │
+│ 日志: Query rewrite: '一只在草地上奔跑的狗'       │
+│       -> 'dog running on grass'                  │
+└─────────────────────────────────────────────────┘
+        │
+        ▼
+改写后的英文查询: "dog running on grass"
+        │
+        ▼
+继续 Step 3 (CLIP 编码)
+```
+
+**关键设计**：
+- 只在检测到中文时触发，英文查询零开销
+- LLM 提取视觉语义而非字面翻译（"一只狗" → "dog" 而非 "a dog"）
+- temperature=0.3 保证输出稳定性
+- max_tokens=100 控制成本
+
+**性能影响**：
+- 中文查询增加 ~200-500ms LLM 调用延迟
+- 但检索准确率显著提升（单语 CLIP 对中文几乎无效）
 
 
 

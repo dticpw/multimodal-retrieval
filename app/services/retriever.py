@@ -29,11 +29,21 @@ class Retriever:
         self._indexer = indexer
         self._metadata = metadata
 
-    def text_to_image(self, query: str, top_k: int = 10) -> RetrievalResponse:
-        """Search images by text query."""
+    @staticmethod
+    def _contains_chinese(text: str) -> bool:
+        """Check if text contains Chinese characters."""
+        return any('\u4e00' <= char <= '\u9fff' for char in text)
+
+    def text_to_image(self, query: str, top_k: int = 10, generator: LLMGenerator | None = None) -> RetrievalResponse:
+        """Search images by text query. Optionally rewrite query with LLM."""
         start = time.perf_counter()
 
-        query_emb = self._encoder.encode_texts([query])
+        # Rewrite query if contains Chinese and generator provided
+        search_query = query
+        if generator and self._contains_chinese(query):
+            search_query = generator.rewrite_query(query)
+
+        query_emb = self._encoder.encode_texts([search_query])
         scores, indices = self._indexer.search_images(query_emb, top_k)
 
         idx_list = indices[0].tolist()
@@ -147,7 +157,7 @@ class Retriever:
     ) -> RAGResponse:
         """Retrieve relevant images and generate an LLM answer."""
         retrieval_start = time.perf_counter()
-        retrieval_resp = self.text_to_image(query, top_k)
+        retrieval_resp = self.text_to_image(query, top_k, generator=generator)
         retrieval_ms = (time.perf_counter() - retrieval_start) * 1000
 
         sources = retrieval_resp.results
